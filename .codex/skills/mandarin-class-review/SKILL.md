@@ -69,6 +69,7 @@ Keep these files short and practical. Include:
 - what was strong
 - what was shaky
 - words or patterns to revisit next time
+- optionally, a lightweight mastery matrix for targeted review planning
 
 Suggested format:
 
@@ -80,6 +81,32 @@ Suggested format:
 - Shaky: `ba` sentence structure
 - Revisit: `bang mang` vs `bang zhu`, `ziji`, `yibian ... yibian ...`
 ```
+
+If ongoing review planning would benefit from more structure, add a compact mastery matrix near the top of the review-history file and update only the rows touched in the session.
+
+Suggested matrix:
+
+```md
+## Mastery Matrix
+
+| Item | Type | Level | Last Reviewed | Next Action |
+| --- | --- | --- | --- | --- |
+| `guo` vs `le` | grammar | 2 | 2026-03-15 | contrast experience vs completed action |
+| `yibian ... yibian ...` | grammar | 3 | 2026-03-15 | occasional mixed recall |
+| `zhaogu` vs `zhao dao` | vocab pair | 2 | 2026-03-15 | test meaning both directions |
+| `luan fang` | phrase | 1 | 2026-03-15 | practice word order |
+```
+
+Level guide:
+- `0` = new or not remembered
+- `1` = partial recall, frequent mistakes
+- `2` = mostly correct, occasional slips
+- `3` = fast and reliable
+
+Use the matrix to choose prompts efficiently:
+- prioritize `0-1` items first
+- mix in a few `2` items for reinforcement
+- touch `3` items only briefly unless they start slipping
 
 Only create or update the review-history file if the user wants the notes saved, or if the user previously asked to keep ongoing progress notes for this note set.
 
