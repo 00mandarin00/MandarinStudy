@@ -18,21 +18,37 @@ Use this skill when the user wants real spaced-repetition scheduling instead of 
 ## Files
 
 - Project config: `pyproject.toml`
+- Wrapper: `scripts/fsrs_run.sh`
 - Script: `scripts/fsrs_tool.py`
 - Default database: `study_data/mandarin-fsrs.sqlite3`
 
 ## Workflow
 
 1. Start from a note and its review-history file.
-2. If needed, import the note's matrix into SQLite:
-   - `uv run scripts/fsrs_tool.py import-matrix --review-file /abs/path/review_history/20260312.review.md`
-3. List due items:
-   - `uv run scripts/fsrs_tool.py due`
+2. Run the wrapper instead of raw `uv run`. It pins `uv` to the system `python3` and writable `/tmp` locations for cache and the project environment:
+   - `bash ./scripts/fsrs_run.sh --help`
+3. If needed, import the note's matrix into SQLite:
+   - `bash ./scripts/fsrs_run.sh import-matrix --review-file /abs/path/review_history/20260312.review.md`
+4. List due items:
+   - `bash ./scripts/fsrs_run.sh due`
    - optionally filter with `--note-file /abs/path/20260312.md`
-4. During review, record the user result:
-   - `uv run scripts/fsrs_tool.py review --item-key "20260312.md::mei qu guo" --rating good`
-5. If useful, sync the latest DB state back into the matrix:
-   - `uv run scripts/fsrs_tool.py sync-matrix --review-file /abs/path/review_history/20260312.review.md`
+5. During review, record the user result:
+   - `bash ./scripts/fsrs_run.sh review --item-key "20260312.md::mei qu guo" --rating good`
+6. If useful, sync the latest DB state back into the matrix:
+   - `bash ./scripts/fsrs_run.sh sync-matrix --review-file /abs/path/review_history/20260312.review.md`
+
+## Environment notes
+
+- Prefer `scripts/fsrs_run.sh` for all normal operations. It avoids three common sandbox issues:
+  - unwritable `uv` cache under `$HOME/.cache/uv`
+  - unwritable uv-managed Python directories under `$HOME/.local/share/uv`
+  - unwritable project `.venv` creation inside the skill directory
+- The wrapper sets:
+  - `UV_CACHE_DIR=/tmp/uv-cache`
+  - `UV_PROJECT_ENVIRONMENT=/tmp/mandarin-fsrs-venv`
+  - `UV_NO_MANAGED_PYTHON=1`
+  - `UV_PYTHON=python3`
+- For a due-only check, it is acceptable to query `study_data/mandarin-fsrs.sqlite3` directly with `sqlite3` or stdlib `sqlite3` if `uv` still cannot run. That fallback is only for reading due state, not for scheduling reviews.
 
 ## Rating guide
 
