@@ -18,15 +18,19 @@ Use this skill when the user wants to review one of their Mandarin note files, p
 
 ## Workflow
 
-1. Read the target class-notes file.
-2. If it exists, also read the matching review-history file in `review_history/`.
-3. Extract a small study set from the notes:
+1. Start by syncing the repository with `git pull` so the review session includes any notes saved from another device.
+2. Read the target class-notes file.
+3. If it exists, also read the matching review-history file in `review_history/`.
+4. Extract a small study set from the notes:
    - vocabulary
    - grammar patterns
    - example sentences
    - likely confusion pairs or near-duplicates
-4. Start an interactive review loop.
-5. At the end, offer to update the matching review-history file with concise notes.
+5. Start an interactive review loop.
+6. At the end, offer to update the matching review-history file with concise notes.
+7. If session results were saved, run `git commit -am "<clear summary>"` and `git push` so the updated review history stays in sync across devices.
+
+If `git pull`, `git commit`, or `git push` fails, explain the error briefly and stop for user guidance instead of guessing through a merge or conflict.
 
 ## Review style
 
@@ -78,6 +82,8 @@ Suggested format:
 ```
 
 Only create or update the review-history file if the user wants the notes saved, or if the user previously asked to keep ongoing progress notes for this note set.
+
+When saving session results, include the updated review-history file in the git commit. Use a concise message such as `Update review history for 20260312`.
 
 ## File-reading guidance
 
