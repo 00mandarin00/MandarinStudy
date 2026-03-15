@@ -7,6 +7,8 @@ description: Use when the user wants interactive review of a Mandarin class-note
 
 Use this skill when the user wants to review one of their Mandarin note files, practice vocabulary or grammar from it, or maintain session-to-session study notes.
 
+If the user asks for spaced repetition, FSRS scheduling, due-item queues, or a database-backed review planner, also use the `mandarin-fsrs` skill.
+
 ## Core behavior
 
 - Converse primarily in English.
@@ -29,6 +31,12 @@ Use this skill when the user wants to review one of their Mandarin note files, p
 5. Start an interactive review loop.
 6. At the end, offer to update the matching review-history file with concise notes.
 7. If session results were saved, run `git commit -am "<clear summary>"` and `git push` so the updated review history stays in sync across devices.
+
+If the user is using FSRS scheduling:
+- import or sync the note's `Mastery Matrix` with the `mandarin-fsrs` skill
+- use due items from SQLite to choose what to review first
+- after each graded prompt, record the outcome with the FSRS tool
+- if helpful, sync the updated schedule back into the review-history markdown
 
 If `git pull`, `git commit`, or `git push` fails, explain the error briefly and stop for user guidance instead of guessing through a merge or conflict.
 
@@ -89,12 +97,12 @@ Suggested matrix:
 ```md
 ## Mastery Matrix
 
-| Item | Type | Level | Last Reviewed | Next Action |
-| --- | --- | --- | --- | --- |
-| `guo` vs `le` | grammar | 2 | 2026-03-15 | contrast experience vs completed action |
-| `yibian ... yibian ...` | grammar | 3 | 2026-03-15 | occasional mixed recall |
-| `zhaogu` vs `zhao dao` | vocab pair | 2 | 2026-03-15 | test meaning both directions |
-| `luan fang` | phrase | 1 | 2026-03-15 | practice word order |
+| Item | Type | Level | Status | Last Reviewed | Next Review | Next Action |
+| --- | --- | --- | --- | --- | --- | --- |
+| `guo` vs `le` | grammar | 2 | active | 2026-03-15 | 2026-03-22 | contrast experience vs completed action |
+| `yibian ... yibian ...` | grammar | 3 | maintenance | 2026-03-15 | 2026-03-22 | occasional mixed recall |
+| `zhaogu` vs `zhao dao` | vocab pair | 2 | active | 2026-03-15 | 2026-03-22 | test meaning both directions |
+| `luan fang` | phrase | 1 | active | 2026-03-15 | 2026-03-18 | practice word order |
 ```
 
 Level guide:
@@ -103,10 +111,16 @@ Level guide:
 - `2` = mostly correct, occasional slips
 - `3` = fast and reliable
 
+Status guide:
+- `active` = review often until stable
+- `maintenance` = review on a spaced schedule for retention
+
 Use the matrix to choose prompts efficiently:
 - prioritize `0-1` items first
 - mix in a few `2` items for reinforcement
 - touch `3` items only briefly unless they start slipping
+- once an item stays at `3`, move it to `maintenance` and schedule a later check
+- if a `maintenance` item is missed, lower its level and move it back to `active`
 
 Only create or update the review-history file if the user wants the notes saved, or if the user previously asked to keep ongoing progress notes for this note set.
 

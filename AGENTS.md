@@ -5,6 +5,7 @@ A skill is a set of local instructions to follow that is stored in a `SKILL.md` 
 
 ### Available skills
 - mandarin-class-review: Use when the user wants to review a Mandarin class-notes file interactively, practice vocabulary or grammar from a note, or update lightweight progress notes for future review sessions. (file: /home/zero/Projects/MandarinStudy/.codex/skills/mandarin-class-review/SKILL.md)
+- mandarin-fsrs: Use when the user wants FSRS-based spaced repetition for Mandarin notes, wants to schedule review items with SQLite, or wants to sync a mastery matrix into a database-backed study queue. (file: /home/zero/Projects/MandarinStudy/.codex/skills/mandarin-fsrs/SKILL.md)
 
 ### How to use skills
 - Discovery: The list above is the skills available in this project for this session.
