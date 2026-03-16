@@ -23,14 +23,16 @@ If the user asks for spaced repetition, FSRS scheduling, due-item queues, or a d
 1. Start by syncing the repository with `git pull` so the review session includes any notes saved from another device.
 2. Read the target class-notes file.
 3. If it exists, also read the matching review-history file in `review_history/`.
-4. Extract a small study set from the notes:
+4. Build a complete review inventory from the notes before starting prompts. Capture all meaningful:
    - vocabulary
    - grammar patterns
    - example sentences
    - likely confusion pairs or near-duplicates
-5. Start an interactive review loop.
-6. At the end, offer to update the matching review-history file with concise notes.
-7. If session results were saved, run `git commit -am "<clear summary>"` and `git push` so the updated review history stays in sync across devices.
+5. If a mastery matrix exists, compare the note inventory against it and add any missing rows before review begins.
+6. If no mastery matrix exists yet and the user wants progress saved, create one from the full inventory on the first saved review pass instead of only recording reviewed prompts.
+7. Start an interactive review loop using a small study set chosen from that full inventory.
+8. At the end, offer to update the matching review-history file with concise notes.
+9. If session results were saved, run `git commit -am "<clear summary>"` and `git push` so the updated review history stays in sync across devices.
 
 If the user is using FSRS scheduling:
 - import or sync the note's `Mastery Matrix` with the `mandarin-fsrs` skill
@@ -57,6 +59,8 @@ If `git pull`, `git commit`, or `git push` fails, explain the error briefly and 
   - new in the note
   - easy to confuse
   - important for conversation
+  - missing from the mastery matrix
+  - marked unreviewed
 
 ## Difficulty control
 
@@ -90,7 +94,14 @@ Suggested format:
 - Revisit: `bang mang` vs `bang zhu`, `ziji`, `yibian ... yibian ...`
 ```
 
-If ongoing review planning would benefit from more structure, add a compact mastery matrix near the top of the review-history file and update only the rows touched in the session.
+If ongoing review planning would benefit from more structure, add a compact mastery matrix near the top of the review-history file.
+
+On the first saved review for a note, initialize the matrix from the full note inventory so every meaningful item is represented, even if it was not prompted yet in the session.
+
+On later reviews:
+- add rows for any note items that are missing from the matrix
+- update rows touched in the session
+- keep untouched rows so coverage gaps remain visible
 
 Suggested matrix:
 
@@ -99,6 +110,7 @@ Suggested matrix:
 
 | Item | Type | Level | Status | Last Reviewed | Next Review | Next Action |
 | --- | --- | --- | --- | --- | --- | --- |
+| `Bei Fang` | vocab | 0 | unreviewed |  | 2026-03-15 | introduce meaning and region contrast |
 | `guo` vs `le` | grammar | 2 | active | 2026-03-15 | 2026-03-22 | contrast experience vs completed action |
 | `yibian ... yibian ...` | grammar | 3 | maintenance | 2026-03-15 | 2026-03-22 | occasional mixed recall |
 | `zhaogu` vs `zhao dao` | vocab pair | 2 | active | 2026-03-15 | 2026-03-22 | test meaning both directions |
@@ -106,21 +118,29 @@ Suggested matrix:
 ```
 
 Level guide:
+- blank = not yet reviewed in a live prompt; only use temporarily if creating rows before the first review turn
 - `0` = new or not remembered
 - `1` = partial recall, frequent mistakes
 - `2` = mostly correct, occasional slips
 - `3` = fast and reliable
 
 Status guide:
+- `unreviewed` = in the note inventory but not yet tested in a live review turn
 - `active` = review often until stable
 - `maintenance` = review on a spaced schedule for retention
 
 Use the matrix to choose prompts efficiently:
-- prioritize `0-1` items first
+- first prioritize `unreviewed` items so the whole note gets initial coverage
+- then prioritize `0-1` items
 - mix in a few `2` items for reinforcement
 - touch `3` items only briefly unless they start slipping
+- once an `unreviewed` item is tested, replace `unreviewed` with `active` or `maintenance` based on performance
 - once an item stays at `3`, move it to `maintenance` and schedule a later check
 - if a `maintenance` item is missed, lower its level and move it back to `active`
+
+Coverage check:
+- Before ending a saved review session, quickly compare the note inventory against the matrix and call out any still-`unreviewed` or missing items as future targets.
+- If the user asks whether anything is missing from a review file, answer by comparing the source note against the full matrix, not just the session summary bullets.
 
 Only create or update the review-history file if the user wants the notes saved, or if the user previously asked to keep ongoing progress notes for this note set.
 
