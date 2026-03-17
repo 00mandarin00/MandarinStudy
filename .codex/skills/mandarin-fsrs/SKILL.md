@@ -42,9 +42,12 @@ Use this skill when the user wants real spaced-repetition scheduling rather than
 4. List due items:
    - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh due`
    - optionally filter with `--note-file /abs/path/20260312.md`
-5. During review, record the user result:
+5. During review, record the user result immediately after each answer:
    - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh review --item-key "20260312.md::mei qu guo" --rating good`
-6. If the user wants markdown updated, sync the latest database state back:
+6. Keep working from the live queue rather than batching ratings at the end:
+   - when the current working set runs out, run `due` again and continue with whatever FSRS has scheduled next
+   - expect `again` and `hard`, and sometimes even `good`, to come back later in the same local study day
+7. If the user wants markdown updated, sync the latest database state back:
    - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh sync-matrix --review-file /abs/path/review_history/20260312.review.md`
 
 ## Environment notes
@@ -55,6 +58,8 @@ Prefer `.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh` for normal operations. 
 - `UV_PROJECT_ENVIRONMENT=/tmp/mandarin-fsrs-venv`
 - `UV_NO_MANAGED_PYTHON=1`
 - `UV_PYTHON=python3`
+
+The script stores timestamps in UTC but interprets calendar-day review boundaries in `America/Chicago` for this project.
 
 For a due-only check, it is acceptable to read `study_data/mandarin-fsrs.sqlite3` directly with `sqlite3` or stdlib `sqlite3` if the wrapper cannot run. Use that only for read-only inspection, not for scheduling updates.
 
