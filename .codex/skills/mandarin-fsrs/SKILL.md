@@ -5,70 +5,94 @@ description: Use when the user wants FSRS-based spaced repetition for Mandarin n
 
 # Mandarin FSRS
 
-Use this skill when the user wants real spaced-repetition scheduling instead of only handwritten review notes.
+Use this skill when the user wants real spaced-repetition scheduling rather than only handwritten review notes.
 
-## What this skill does
+## When to use it
 
-- keeps durable study-item state in SQLite
-- uses `py-fsrs` for scheduling after each rating
-- imports items from a review-history `Mastery Matrix`
-- lists due items for review sessions
-- records ratings like `again`, `hard`, `good`, and `easy`
+- import a lesson matrix into SQLite
+- list due items
+- record review ratings such as `again`, `hard`, `good`, or `easy`
+- sync scheduling state back into a markdown review file
+
+## When not to use it
+
+- interactive note cleanup without scheduling
+- ordinary lesson drilling when the user does not want spaced repetition
+
+## Source of truth
+
+- SQLite is the source of truth for scheduling state.
+- Markdown review-history files are the human-readable log.
+- If the database and markdown disagree, prefer the database for scheduling and use `sync-matrix` to refresh markdown.
 
 ## Files
 
-- Project config: `pyproject.toml`
-- Wrapper: `scripts/fsrs_run.sh`
-- Script: `scripts/fsrs_tool.py`
-- Default database: `study_data/mandarin-fsrs.sqlite3`
+- project config: `.codex/skills/mandarin-fsrs/pyproject.toml`
+- wrapper: `.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh`
+- script: `.codex/skills/mandarin-fsrs/scripts/fsrs_tool.py`
+- default database: `study_data/mandarin-fsrs.sqlite3`
 
-## Workflow
+## Default workflow
 
-1. Start from a note and its review-history file.
-2. Run the wrapper instead of raw `uv run`. It pins `uv` to the system `python3` and writable `/tmp` locations for cache and the project environment:
-   - `bash ./scripts/fsrs_run.sh --help`
-3. If needed, import the note's matrix into SQLite:
-   - `bash ./scripts/fsrs_run.sh import-matrix --review-file /abs/path/review_history/20260312.review.md`
+1. Start from a note and, if present, its review-history file.
+2. Use the wrapper instead of raw `uv run`:
+   - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh --help`
+3. If needed, import the markdown matrix into SQLite:
+   - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh import-matrix --review-file /abs/path/review_history/20260312.review.md`
 4. List due items:
-   - `bash ./scripts/fsrs_run.sh due`
+   - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh due`
    - optionally filter with `--note-file /abs/path/20260312.md`
 5. During review, record the user result:
-   - `bash ./scripts/fsrs_run.sh review --item-key "20260312.md::mei qu guo" --rating good`
-6. If useful, sync the latest DB state back into the matrix:
-   - `bash ./scripts/fsrs_run.sh sync-matrix --review-file /abs/path/review_history/20260312.review.md`
+   - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh review --item-key "20260312.md::mei qu guo" --rating good`
+6. If the user wants markdown updated, sync the latest database state back:
+   - `bash ./.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh sync-matrix --review-file /abs/path/review_history/20260312.review.md`
 
 ## Environment notes
 
-- Prefer `scripts/fsrs_run.sh` for all normal operations. It avoids three common sandbox issues:
-  - unwritable `uv` cache under `$HOME/.cache/uv`
-  - unwritable uv-managed Python directories under `$HOME/.local/share/uv`
-  - unwritable project `.venv` creation inside the skill directory
-- The wrapper sets:
-  - `UV_CACHE_DIR=/tmp/uv-cache`
-  - `UV_PROJECT_ENVIRONMENT=/tmp/mandarin-fsrs-venv`
-  - `UV_NO_MANAGED_PYTHON=1`
-  - `UV_PYTHON=python3`
-- For a due-only check, it is acceptable to query `study_data/mandarin-fsrs.sqlite3` directly with `sqlite3` or stdlib `sqlite3` if `uv` still cannot run. That fallback is only for reading due state, not for scheduling reviews.
+Prefer `.codex/skills/mandarin-fsrs/scripts/fsrs_run.sh` for normal operations. It avoids common sandbox and writability problems by setting:
+
+- `UV_CACHE_DIR=/tmp/uv-cache`
+- `UV_PROJECT_ENVIRONMENT=/tmp/mandarin-fsrs-venv`
+- `UV_NO_MANAGED_PYTHON=1`
+- `UV_PYTHON=python3`
+
+For a due-only check, it is acceptable to read `study_data/mandarin-fsrs.sqlite3` directly with `sqlite3` or stdlib `sqlite3` if the wrapper cannot run. Use that only for read-only inspection, not for scheduling updates.
+
+Canonical SQLite fallback for due-only checks:
+
+```sh
+sqlite3 -header -column study_data/mandarin-fsrs.sqlite3 \
+  "SELECT item_key, item_text, item_type, level, status, date(next_review) AS due_date
+   FROM items
+   WHERE next_review IS NOT NULL AND date(next_review) <= date('now')
+   ORDER BY note_file, datetime(next_review), id;"
+```
 
 ## Rating guide
 
-- `again` = did not remember, major miss
-- `hard` = remembered with strain or needed help
+- `again` = major miss
+- `hard` = remembered with strain or help
 - `good` = correct with normal effort
 - `easy` = immediate and confident
 
 ## Seeding policy
 
-When importing an existing mastery matrix, seed cards from the current level rather than pretending to know the full historical timeline.
+When importing an existing mastery matrix, seed from the current level instead of pretending to know the full review history.
 
 - `Level 0-1` -> weak seed
 - `Level 2` -> moderate seed
 - `Level 3` -> strong seed
 
-This keeps the starting schedule reasonable, and real reviews quickly override the seed.
+Real reviews should override the initial seed quickly.
 
-## Notes
+## Coordination with other skills
 
-- Keep the Markdown review history as the human-readable study log.
-- Treat SQLite as the scheduling engine.
-- If the matrix and database disagree, prefer the database for due scheduling and use `sync-matrix` to refresh the Markdown file.
+- Use with `mandarin-class-review` when the user wants due-item-driven drilling.
+- Use with `mandarin-note-cleanup` only after the note content is stable enough to schedule.
+
+## Minimal examples
+
+- "Import this lesson's matrix into FSRS."
+- "Show due items for `/abs/path/20260312.md`."
+- "Record this item as `hard`."
+- "Sync the DB state back into the review markdown."

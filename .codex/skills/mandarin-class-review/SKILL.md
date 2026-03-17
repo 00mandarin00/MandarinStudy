@@ -5,85 +5,107 @@ description: Use when the user wants interactive review of a Mandarin class-note
 
 # Mandarin Class Review
 
-Use this skill when the user wants to review one of their Mandarin note files, practice vocabulary or grammar from it, or maintain session-to-session study notes.
+Use this skill when the user wants to review a Mandarin note file, practice vocabulary or grammar from it, or continue a prior review session for the same note.
 
-If the user asks for spaced repetition, FSRS scheduling, due-item queues, or a database-backed review planner, also use the `mandarin-fsrs` skill.
+If the user wants spaced-repetition scheduling, due queues, or SQLite-backed review state, also use `mandarin-fsrs`.
 
-## Core behavior
+## When to use it
+
+- interactive lesson prep
+- vocabulary review from a note
+- grammar review from a note
+- lightweight review-history updates for a specific lesson
+
+## When not to use it
+
+- cleaning messy notes into structured study notes; use `mandarin-note-cleanup`
+- FSRS scheduling or durable spaced-repetition state; use `mandarin-fsrs`
+- broad repo-management tasks unless the user explicitly asks for them
+
+## Default behavior
 
 - Converse primarily in English.
-- Use pinyin for Chinese terms and examples. Do not switch to Hanzi unless the user explicitly asks for it.
-- Keep the session interactive. Do not dump the whole file back at the user unless they ask.
-- Prefer short review turns: one word, one pattern, or one grammar point at a time.
-- Match the user's pacing. If they seem unsure, slow down and give hints before giving the answer.
-- Be encouraging, but correct mistakes clearly.
+- Keep all Chinese in pinyin unless the user explicitly asks for Hanzi or tones.
+- Keep the session interactive. Do not dump the entire note back to the user unless asked.
+- Review in short turns: one word, one phrase, one contrast, or one grammar pattern at a time.
+- Match the user's pace. Give hints before answers when the user seems unsure.
+- Correct mistakes clearly without pretending uncertain notes are correct.
 
-## Workflow
+## Default workflow
 
-1. Start by syncing the repository with `git pull` so the review session includes any notes saved from another device.
-2. Read the target class-notes file.
-3. If it exists, also read the matching review-history file in `review_history/`.
-4. Build a complete review inventory from the notes before starting prompts. Capture all meaningful:
+1. Read the requested note file.
+2. If present and relevant, read the matching file in `review_history/`.
+3. Build a review inventory from the note before prompting:
    - vocabulary
    - grammar patterns
    - example sentences
-   - likely confusion pairs or near-duplicates
-5. If a mastery matrix exists, compare the note inventory against it and add any missing rows before review begins.
-6. If no mastery matrix exists yet and the user wants progress saved, create one from the full inventory on the first saved review pass instead of only recording reviewed prompts.
-7. Start an interactive review loop using a small study set chosen from that full inventory.
-8. At the end, offer to update the matching review-history file with concise notes.
-9. If session results were saved, run `git commit -am "<clear summary>"` and `git push` so the updated review history stays in sync across devices.
+   - easy-to-confuse pairs
+4. Start an interactive review loop using a small study set from that inventory.
+5. Recycle missed items later in the session.
+6. At the end, summarize what looked strong and what still needs work.
+7. Only update `review_history/` if the user wants progress saved.
 
-If the user is using FSRS scheduling:
-- import or sync the note's `Mastery Matrix` with the `mandarin-fsrs` skill
-- use due items from SQLite to choose what to review first
-- after each graded prompt, record the outcome with the FSRS tool
-- if helpful, sync the updated schedule back into the review-history markdown
+## Optional branches
 
-If `git pull`, `git commit`, or `git push` fails, explain the error briefly and stop for user guidance instead of guessing through a merge or conflict.
+If the user wants progress saved:
+
+- store notes in `review_history/<note-basename>.review.md`
+- keep the file short and practical
+- include:
+  - session date
+  - strong items
+  - shaky items
+  - items to revisit next time
+
+If the user wants a mastery matrix:
+
+- initialize it from the full note inventory, not just the prompts used in one session
+- add missing note items on later passes
+- update only the rows touched or clearly implied by the session
+- leave untouched rows in place so coverage gaps stay visible
+
+If the user wants git syncing:
+
+- treat `git pull`, `git commit`, and `git push` as explicit opt-in actions
+- if any git step fails, report the error briefly and stop for user guidance
+
+If the user wants FSRS-based review:
+
+- use `mandarin-fsrs` to import or sync the matrix
+- choose due items first when practical
+- record graded outcomes through the FSRS workflow
 
 ## Review style
 
-- Default to prompts like:
-  - "Let's review this word."
-  - "What does this pattern mean?"
-  - "How would you say this in pinyin?"
-  - "What is the difference between these two forms?"
 - Mix recognition and recall:
-  - English -> pinyin
-  - pinyin -> English
-  - explain the grammar pattern
-  - fill in one missing word
+  - English to pinyin
+  - pinyin to English
+  - explain a grammar pattern
+  - fill in a missing word
   - correct a slightly wrong sentence
-- Prefer material that is:
+- Prioritize material that is:
   - new in the note
   - easy to confuse
   - important for conversation
-  - missing from the mastery matrix
-  - marked unreviewed
+  - unreviewed
+  - previously shaky
 
 ## Difficulty control
 
-- Start with easier recall unless the user asks for a harder drill.
-- If the user misses something, recycle it later in the same session.
-- If the user gets something right quickly, move on instead of over-drilling.
-- Every few turns, briefly summarize patterns the user seems to know well versus patterns that still need work.
+- Start slightly easier unless the user asks for a harder drill.
+- If the user misses an item, revisit it later in the same session.
+- If the user answers quickly and correctly, move on.
+- Every few turns, briefly summarize what seems stable versus shaky.
 
-## Review-history files
+## Review-history format
 
-Store progress notes in `review_history/<note-basename>.review.md`.
+Store progress in `review_history/<note-basename>.review.md`.
 
 Example:
+
 - `20260312.md` -> `review_history/20260312.review.md`
 
-Keep these files short and practical. Include:
-- session date
-- what was strong
-- what was shaky
-- words or patterns to revisit next time
-- optionally, a lightweight mastery matrix for targeted review planning
-
-Suggested format:
+Suggested minimal format:
 
 ```md
 # Review History for 20260312
@@ -94,16 +116,7 @@ Suggested format:
 - Revisit: `bang mang` vs `bang zhu`, `ziji`, `yibian ... yibian ...`
 ```
 
-If ongoing review planning would benefit from more structure, add a compact mastery matrix near the top of the review-history file.
-
-On the first saved review for a note, initialize the matrix from the full note inventory so every meaningful item is represented, even if it was not prompted yet in the session.
-
-On later reviews:
-- add rows for any note items that are missing from the matrix
-- update rows touched in the session
-- keep untouched rows so coverage gaps remain visible
-
-Suggested matrix:
+If the user wants a mastery matrix, use a compact table like:
 
 ```md
 ## Mastery Matrix
@@ -112,49 +125,28 @@ Suggested matrix:
 | --- | --- | --- | --- | --- | --- | --- |
 | `Bei Fang` | vocab | 0 | unreviewed |  | 2026-03-15 | introduce meaning and region contrast |
 | `guo` vs `le` | grammar | 2 | active | 2026-03-15 | 2026-03-22 | contrast experience vs completed action |
-| `yibian ... yibian ...` | grammar | 3 | maintenance | 2026-03-15 | 2026-03-22 | occasional mixed recall |
-| `zhaogu` vs `zhao dao` | vocab pair | 2 | active | 2026-03-15 | 2026-03-22 | test meaning both directions |
-| `luan fang` | phrase | 1 | active | 2026-03-15 | 2026-03-18 | practice word order |
 ```
 
-Level guide:
-- blank = not yet reviewed in a live prompt; only use temporarily if creating rows before the first review turn
-- `0` = new or not remembered
-- `1` = partial recall, frequent mistakes
-- `2` = mostly correct, occasional slips
-- `3` = fast and reliable
+Use these meanings:
 
-Status guide:
-- `unreviewed` = in the note inventory but not yet tested in a live review turn
-- `active` = review often until stable
-- `maintenance` = review on a spaced schedule for retention
+- `Level 0` = new or not remembered
+- `Level 1` = partial recall
+- `Level 2` = mostly correct
+- `Level 3` = fast and reliable
+- `unreviewed` = in the note inventory but not yet tested live
+- `active` = should be reviewed regularly
+- `maintenance` = stable enough for lighter follow-up
 
-Use the matrix to choose prompts efficiently:
-- first prioritize `unreviewed` items so the whole note gets initial coverage
-- then prioritize `0-1` items
-- mix in a few `2` items for reinforcement
-- touch `3` items only briefly unless they start slipping
-- once an `unreviewed` item is tested, replace `unreviewed` with `active` or `maintenance` based on performance
-- once an item stays at `3`, move it to `maintenance` and schedule a later check
-- if a `maintenance` item is missed, lower its level and move it back to `active`
+## File guidance
 
-Coverage check:
-- Before ending a saved review session, quickly compare the note inventory against the matrix and call out any still-`unreviewed` or missing items as future targets.
-- If the user asks whether anything is missing from a review file, answer by comparing the source note against the full matrix, not just the session summary bullets.
+- Read only the note file the user asked for.
+- If the note is long, build a useful subset instead of reviewing top to bottom.
+- Preserve the user's romanization unless a correction is clearly helpful.
+- If a note seems inconsistent or mistaken, raise it during review instead of silently rewriting the source.
 
-Only create or update the review-history file if the user wants the notes saved, or if the user previously asked to keep ongoing progress notes for this note set.
+## Minimal examples
 
-When saving session results, include the updated review-history file in the git commit. Use a concise message such as `Update review history for 20260312`.
-
-## File-reading guidance
-
-- Read only the specific note file requested by the user.
-- If the file is long, build a review set first instead of covering everything in order.
-- Preserve the user's romanization as written unless a correction is helpful.
-- If the notes appear inconsistent, ask during review rather than silently rewriting the source material.
-
-## Boundaries
-
-- This skill is for guided review, not for pretending uncertain notes are correct.
-- If a note likely contains an error, flag it gently and explain the best interpretation in English with pinyin examples.
-- If the user asks for Hanzi, tones, or a more immersive Chinese-only mode, follow that explicit request for the current session.
+- "Review `/abs/path/20260312.md` with me."
+- "Quiz me on grammar from this lesson."
+- "Use the review history too, but do not save anything yet."
+- "Save a short review summary after we finish."

@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Iterable
+from zoneinfo import ZoneInfo
 
 from fsrs import Card, Rating, Scheduler
 
@@ -15,6 +16,7 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_DIR = SCRIPT_DIR.parent
 REPO_ROOT = SKILL_DIR.parents[2]
 DEFAULT_DB_PATH = REPO_ROOT / "study_data" / "mandarin-fsrs.sqlite3"
+STUDY_TZ = ZoneInfo("America/Chicago")
 
 DATE_FMT = "%Y-%m-%d"
 RATING_MAP = {
@@ -52,12 +54,16 @@ def now_utc() -> datetime:
     return datetime.now(UTC)
 
 
+def now_in_study_tz() -> datetime:
+    return now_utc().astimezone(STUDY_TZ)
+
+
 def strip_ticks(value: str) -> str:
     return value.strip().replace("`", "")
 
 
 def today_str() -> str:
-    return now_utc().date().isoformat()
+    return now_in_study_tz().date().isoformat()
 
 
 def ensure_utc(value: datetime) -> datetime:
@@ -67,15 +73,22 @@ def ensure_utc(value: datetime) -> datetime:
 
 
 def iso_at_start_of_day(date_text: str) -> str:
-    return datetime.strptime(date_text, DATE_FMT).replace(tzinfo=UTC).isoformat()
+    local_dt = datetime.strptime(date_text, DATE_FMT).replace(tzinfo=STUDY_TZ)
+    return local_dt.astimezone(UTC).isoformat()
 
 
 def iso_to_date_text(value: str | None) -> str:
     if not value:
         return ""
     if "T" in value:
-        return value.split("T", 1)[0]
+        return datetime.fromisoformat(value).astimezone(STUDY_TZ).date().isoformat()
     return value
+
+
+def local_end_of_day_to_utc(date_text: str) -> str:
+    local_start = datetime.strptime(date_text, DATE_FMT).replace(tzinfo=STUDY_TZ)
+    local_end = local_start + timedelta(days=1) - timedelta(microseconds=1)
+    return local_end.astimezone(UTC).isoformat()
 
 
 def parse_date_or_default(value: str | None, *, default: str | None = None) -> str:
@@ -332,9 +345,7 @@ def due_items(args: argparse.Namespace) -> None:
     init_db(conn)
 
     due_date = parse_date_or_default(args.on)
-    cutoff = (
-        datetime.strptime(due_date, DATE_FMT).replace(tzinfo=UTC) + timedelta(days=1) - timedelta(microseconds=1)
-    ).isoformat()
+    cutoff = local_end_of_day_to_utc(due_date)
     params: list[object] = [cutoff]
     query = """
         SELECT item_key, note_file, item_text, item_type, level, status, next_review, next_action
@@ -429,7 +440,7 @@ def review_item(args: argparse.Namespace) -> None:
     new_level = adjusted_level(row["level"], rating_name)
     new_status = next_status(new_level)
     next_action = next_action_for_rating(row["item_text"], rating_name)
-    reviewed_iso = reviewed_at.date().isoformat()
+    reviewed_iso = reviewed_at.astimezone(STUDY_TZ).date().isoformat()
 
     conn.execute(
         """
